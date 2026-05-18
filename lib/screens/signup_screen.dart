@@ -48,7 +48,8 @@ class SignupScreen extends StatelessWidget {
             SizedBox(height: 20),
 
             ElevatedButton(
-              onPressed: () { //When the button is pressed, it pops the current screen from the stack and returns to the previous screen (LoginScreen)
+              onPressed: () { 
+                //When the button is pressed, it pops the current screen from the stack and returns to the previous screen (LoginScreen)
                 Navigator.pop(context);
               },
 

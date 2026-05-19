@@ -1,3 +1,4 @@
+import 'package:attendance_app/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -139,7 +140,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 height: 60,
 
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HomeScreen(),
+                      ),  
+                    );
+                  },
 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,

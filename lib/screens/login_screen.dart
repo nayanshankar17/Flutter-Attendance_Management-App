@@ -1,175 +1,288 @@
-import 'package:attendance_app/screens/home_screen.dart';
-import 'package:flutter/material.dart';
+  import 'package:attendance_app/screens/home_screen.dart';
+  import 'package:flutter/material.dart';
 
-class LoginScreen extends StatefulWidget {
-  @override
-  //The createState method is overridden to create an instance of the _LoginScreenState class, which manages the state of the LoginScreen widget.
-  State<LoginScreen> createState() => _LoginScreenState();
-}
+  // used for JSON encoding & decoding
+  import 'dart:convert';
 
-class _LoginScreenState extends State<LoginScreen> {
+  // Used to access app assets and system services like rootBundle
+  import 'package:flutter/services.dart';
 
-  //TextEditingController is used to control the text being edited in the TextField widgets. It allows us to retrieve the current value of the text fields and perform actions based on that value.
-  final TextEditingController usernameController =
-      TextEditingController();
+  //Shared preference package
+  import 'package:shared_preferences/shared_preferences.dart';
 
-  final TextEditingController passwordController =
-      TextEditingController();
+  class LoginScreen extends StatefulWidget {
 
-  @override
-  Widget build(BuildContext context) {
+    
+    @override
+    //The createState method is overridden to create an instance of the _LoginScreenState class, which manages the state of the LoginScreen widget.
+    State<LoginScreen> createState() => _LoginScreenState();
+  }
 
-    return Scaffold(
-      backgroundColor: Colors.white,
+  class _LoginScreenState extends State<LoginScreen> {
 
-      //The AppBar widget is used to create a material design app bar at the top of the screen. It contains a title and centers it.
-      appBar: AppBar(
-        title: Text("Login"),
-        centerTitle: true,
-      ),
-      //The SingleChildScrollView widget allows the content of the screen to be scrollable when it exceeds the available space. This is useful for smaller screens or when the keyboard is open.
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(25),
+    //TextEditingController is used to control the text being edited in the TextField widgets. It allows us to retrieve the current value of the text fields and perform actions based on that value.
+    final TextEditingController emailController =
+        TextEditingController();
 
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final TextEditingController passwordController =
+        TextEditingController();
 
-            children: [
+    @override
+    void initState() {
+      super.initState();
 
-              SizedBox(height: 10),
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) {
 
-              Text(
-                "Sign in to continue",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
+        checkLogin();
+      });
+    }
+
+
+    bool rememberMe = false; // used to maintain the status of remember_me button
+
+    //fucntion of remember_me button
+    Future<void> checkLogin() async {
+
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      bool? isLoggedIn = prefs.getBool("isLoggedIn");
+
+      String? savedEmail = prefs.getString("email");
+
+      if (isLoggedIn == true && savedEmail != null) {
+        String jsonString = await rootBundle.loadString('assets/data/users.json');
+
+        List users = json.decode(jsonString);
+
+        for (var user in users) {
+
+          if (user["email"] == savedEmail) {
+
+            Navigator.pushReplacement(
+              context,
+
+              MaterialPageRoute(
+                builder: (context) => HomeScreen(
+
+                  name: user["name"],
+                  email: user["email"],
+                  phone: user["phone"],
+                  designation: user["designation"],
                 ),
               ),
+            );
 
-              SizedBox(height: 40),
+            break;
+          }
+        }
+      }
+    }
 
-              Center(
-                child: Image.asset("assets/images/logo.jpg",height: 220,),
+    //function for checking the login credentials 
+    Future<void> loginUser() async{
+      //Load JSON file
+      String jsonString = await rootBundle.loadString('assets/data/users.json');
+
+      //Decode JSON
+      List users = json.decode(jsonString);
+
+      String email = emailController.text.trim();
+      String password = passwordController.text.trim();
+
+      bool isUserFound = false; // used to check is login details are correct
+
+      
+      //cpmapres the entered details with all the predefined credentials
+      for (var user in users){
+        if(user["email"] == email && user["password"] == password){
+
+          isUserFound = true; // successful
+
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+
+          //save details for remember_me button
+          if(rememberMe){
+            await prefs.setBool("isLoggedIn", true);
+            await prefs.setString("email", email);
+          }
+          //if details are correct => login successful
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HomeScreen(
+                name: user["name"],
+                email: user["email"],
+                phone: user["phone"],
+                designation: user["designation"],
               ),
+            ),  
+          ); 
+          break;
+        }
+        
+      }
+      //if wrong details entered
+      if(!isUserFound){
+        ScaffoldMessenger.of(context).showSnackBar(// snackbar: a small barappears at the bottom of the app
+          SnackBar(
+            content: Text("Invalid email or password"), 
+          ),
+        );
+      }
+    }
 
-              SizedBox(height: 40),
+    @override
+    Widget build(BuildContext context) {
 
-              Text(
-                "Username",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+      return Scaffold(
+        backgroundColor: Colors.white,
 
-              SizedBox(height: 10),
+        //The AppBar widget is used to create a material design app bar at the top of the screen. It contains a title and centers it.
+        appBar: AppBar(
+          title: Text("Login"),
+          centerTitle: true,
+        ),
+        //The SingleChildScrollView widget allows the content of the screen to be scrollable when it exceeds the available space. This is useful for smaller screens or when the keyboard is open.
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(25),
 
-              TextField(
-                controller: usernameController, //The controller property is set to the usernameController, which allows us to retrieve the value entered in this text field.
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
 
-                decoration: InputDecoration(
-                  hintText: "Enter username", //space Holder 
+              children: [
 
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
+                SizedBox(height: 10),
 
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 18,
+                Text(
+                  "Sign in to continue",
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
                   ),
                 ),
-              ),
 
-              SizedBox(height: 25),
+                SizedBox(height: 40),
 
-              Text(
-                "Password",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+                Center(
+                  child: Image.asset("assets/images/logo.jpg",height: 220,),
+                ),
 
-              SizedBox(height: 10),
+                SizedBox(height: 40),
 
-              TextField(
-                controller: passwordController,
-                obscureText: true,
+                Text(
+                  "Email",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
 
-                decoration: InputDecoration(
-                  hintText: "Enter password",
+                SizedBox(height: 10),
 
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
+                TextField(
+                  controller: emailController, //The controller property is set to the usernameController, which allows us to retrieve the value entered in this text field.
 
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 18,
+                  decoration: InputDecoration(
+                    hintText: "Enter email", //space Holder 
+
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 18,
+                    ),
                   ),
                 ),
-              ),
 
-              SizedBox(height: 15),
-              //The Row widget is used to create a horizontal layout for the "Remember Me" checkbox and the "Forgot Password?" text button. The mainAxisAlignment property is set to MainAxisAlignment.spaceBetween to space them apart.
-              Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceBetween,
+                SizedBox(height: 25),
 
-                children: [
+                Text(
+                  "Password",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
 
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: false,
-                        onChanged: (value) {},
+                SizedBox(height: 10),
+
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+
+                  decoration: InputDecoration(
+                    hintText: "Enter password",
+
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 18,
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 15),
+                //The Row widget is used to create a horizontal layout for the "Remember Me" checkbox and the "Forgot Password?" text button. The mainAxisAlignment property is set to MainAxisAlignment.spaceBetween to space them apart.
+                Row(
+                  mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
+
+                  children: [
+
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: rememberMe,
+                          onChanged: (value) {
+                            setState(() {
+                              rememberMe = value!;
+                            });
+                          },
+                        ),
+
+                        Text("Remember Me"),
+                      ],
+                    ),
+
+                    TextButton(
+                      onPressed: () {},
+
+                      child: Text("Forgot Password?"),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 25),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+
+                  child: ElevatedButton(
+                    onPressed: loginUser,
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(30),
                       ),
-
-                      Text("Remember Me"),
-                    ],
-                  ),
-
-                  TextButton(
-                    onPressed: () {},
-
-                    child: Text("Forgot Password?"),
-                  ),
-                ],
-              ),
-
-              SizedBox(height: 25),
-
-              SizedBox(
-                width: double.infinity,
-                height: 60,
-
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => HomeScreen(),
-                      ),  
-                    );
-                  },
-
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(30),
                     ),
-                  ),
 
-                  child: Text(
-                    "Login",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white,
+                    child: Text(
+                      "Login",
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    }
   }
-}

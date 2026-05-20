@@ -1,10 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:attendance_app/screens/login_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 //This is the structure/container.
 class HomeScreen extends StatefulWidget {
+  final String name;
+  final String email;
+  final String phone;
+  final String designation;
+
+  const HomeScreen({
+    super.key,
+
+    required this.name,
+    required this.email,
+    required this.phone,
+    required this.designation,
+  });
+
 
   @override
-  // State Class: stores variavles, changing UI, dynamic data , button clicks, databases
+  // State Class: stores variables, changing UI, dynamic data , button clicks, databases
   // State<HomeScreen>: will return a State object connected to HomeScreen
   // createState(): returns the state class
   // _HomeScreenState(): Create and return an object of _HomeScreenState
@@ -13,9 +29,21 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>{
   // add the controllers here later
+  // ...
+  // ...
+  // ...
+  Future<void> logoutUser() async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
 
-
-
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginScreen()
+      ),   
+    );
+  }
+  
   // stores the idx of tabs from bottom navihation bar
   int currentIndex = 0;
 
@@ -42,13 +70,38 @@ class _HomeScreenState extends State<HomeScreen>{
 
                 children: [
                   Image.asset("assets/images/logo.jpg", height:100),
-                  Text(
-                    "Mr. XYZ \nSenior Associate",
-                    style: TextStyle(
-                      color: Colors.black,
-                    ),
-                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
 
+                    children: [
+
+                      Text(
+                        widget.name,
+
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
+
+                      SizedBox(height: 5),
+
+                      Text(
+                        widget.designation,
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+
+                      SizedBox(height: 5),
+
+                      Text(widget.email),
+
+                      Text(widget.phone),
+                    ],
+                  ),
                 ],
               ),
               SizedBox(height: 30),
@@ -113,8 +166,34 @@ class _HomeScreenState extends State<HomeScreen>{
                   ),
                 ],
               ),
-            ],
+              SizedBox(height: 300),
 
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+
+                  child: ElevatedButton(
+                    onPressed: logoutUser,
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(12),
+                      ),
+                    ),
+
+                    child: Text(
+                      "Logout",
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+            
           ),
         ),
       ),

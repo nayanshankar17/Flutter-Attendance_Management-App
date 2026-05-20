@@ -16,6 +16,7 @@ dependencies:
   table_calendar: ^3.0.9
   sqflite: ^2.3.0
   path: ^1.9.0
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
@@ -28,3 +29,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/logo.jpg
+    - assets/data/users.json

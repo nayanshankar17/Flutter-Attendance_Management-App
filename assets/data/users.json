@@ -1,0 +1,17 @@
+[
+  {
+    "email": "nayan@gmail.com",
+    "password": "1234",
+    "name": "Nayan Shankar",
+    "phone": "9876543210",
+    "designation": "Software Intern"
+  },
+
+  {
+    "email": "employee@gmail.com",
+    "password": "abcd",
+    "name": "Rahul Sharma",
+    "phone": "9123456780",
+    "designation": "HR Manager"
+  }
+]

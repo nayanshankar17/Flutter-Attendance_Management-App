@@ -1,5 +1,5 @@
 name: attendance_app
-description: A new Flutter project
+description: An app to maintain the attendance, punch timings, leave details, personal info of an employee in a company
 
 publish_to: 'none'
 
@@ -13,10 +13,11 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  table_calendar: ^3.0.9
-  sqflite: ^2.3.0
-  path: ^1.9.0
-  shared_preferences: ^2.2.2
+  table_calendar: ^3.0.9 #Used later for: attendance calendar, leave tracking
+  sqflite: ^2.3.0 #SQLite Database
+  path: ^1.9.0 #database file paths
+  shared_preferences: ^2.2.2 #used in "Remember Me"
+
 
 dev_dependencies:
   flutter_test:

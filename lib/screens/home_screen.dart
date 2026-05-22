@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:attendance_app/screens/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+//imports DatabaseHelper class 
+import '../database/database_helper.dart';
+
 //This is the structure/container.
 class HomeScreen extends StatefulWidget {
   final String name;
@@ -32,6 +35,9 @@ class _HomeScreenState extends State<HomeScreen>{
   // ...
   // ...
   // ...
+
+  final DatabaseHelper dbHelper = DatabaseHelper();
+
   Future<void> logoutUser() async{
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
@@ -46,6 +52,122 @@ class _HomeScreenState extends State<HomeScreen>{
   
   // stores the idx of tabs from bottom navihation bar
   int currentIndex = 0;
+
+  //func to handle punchIn
+  Future<void> punchIn() async{
+    final db = await dbHelper.database;
+
+    DateTime now = DateTime.now();
+
+    String currentDate = "${now.day}:${now.month}:-${now.year}"; //punchIn date
+    String currentTime = "${now.hour}:${now.minute}"; //punchIn time
+    
+    //entry is given in attendance DB's table
+    await db.insert(
+      'attendance', 
+      {
+        'date': currentDate,
+        'status': 'Present',
+        'punchIn': currentTime,
+        'punchOut': '',
+        'workingHours': '',
+      }  
+    );
+
+    //snackbar shows alert
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Punch In recorded."),
+      ),
+    );
+  }
+  
+  //func to punchOut
+  Future<void> punchOut() async{
+    
+    print("Punch Out clicked");
+    
+    final db = await dbHelper.database;
+
+    DateTime now = DateTime.now();
+
+    String currentTime = "${now.hour}:${now.minute}"; //punchIn time
+
+    //fetch latest attendace record
+    //List → multiple rows
+    //Map → one row
+    //String → column name
+    //dynamic → value
+    List<Map<String, dynamic>> records = await db.query(
+      'attendance',
+      orderBy: 'id DESC',
+      limit: 1,
+    );
+    
+    if(records.isNotEmpty){
+
+      int latestId = records[0]['id']; //store id of latest entry
+      String punchInTime = records[0]['punchIn']; // store punchIn time of latest entry
+
+      await db.update(
+        'attendance',
+        {
+          'punchOut': currentTime,
+          'workingHours': calculateHours(punchInTime, currentTime),
+        },
+
+        where: 'id = ?',
+        whereArgs: [latestId],
+      );
+    }
+    
+
+    //snackbar shows alert
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Punch Out recorded."),
+      ),
+    );
+  }
+
+  String calculateHours(String punchIn, String punchOut){
+      // split hours and minutes
+    List<String> inParts =
+        punchIn.split(":");
+
+    List<String> outParts =
+        punchOut.split(":");
+
+    // convert string to integers
+    int inHour =
+        int.parse(inParts[0]);
+
+    int inMinute =
+        int.parse(inParts[1]);
+
+    int outHour =
+        int.parse(outParts[0]);
+
+    int outMinute =
+        int.parse(outParts[1]);
+
+    // convert everything into minutes
+    int totalMinutes =
+
+        (outHour * 60 + outMinute) -
+
+        (inHour * 60 + inMinute);
+
+    // separate hours and remaining minutes
+    int hours =
+        totalMinutes ~/ 60;
+
+    int minutes =
+        totalMinutes % 60;
+
+    // final formatted string
+    return "$hours hrs $minutes mins";
+  }
 
   @override
   Widget build(BuildContext context){
@@ -113,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen>{
                       height: 60,
 
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: punchIn,
 
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
@@ -143,7 +265,7 @@ class _HomeScreenState extends State<HomeScreen>{
                       height: 60,
 
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: punchOut,
 
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,

@@ -40,6 +40,18 @@ class DatabaseHelper{
     );
   }
 
+  // func to fetch data from database
+  Future<List<Map<String,dynamic>>>
+    getAttendance() async {
+      final db = await database;
+
+      return await db.query(
+        'attendance',
+        orderBy: 'id DESC',
+      );
+    }
+  
+
   //func to create tables 
   Future<void> createTables(Database db) async{
 

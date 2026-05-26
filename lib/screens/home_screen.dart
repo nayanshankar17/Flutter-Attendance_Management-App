@@ -1,3 +1,4 @@
+import 'package:attendance_app/screens/attendance_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:attendance_app/screens/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -57,9 +58,23 @@ class _HomeScreenState extends State<HomeScreen>{
   Future<void> punchIn() async{
     final db = await dbHelper.database;
 
+    // check today's attendance
+    var todayRecord = await getTodayAttendance();
+
+    //if already punchedIn
+    if(todayRecord != null){
+      ScaffoldMessenger.of(context).
+        showSnackBar(
+          SnackBar(
+            content: Text("Already punchedIn"),
+          )
+        );
+      return;
+    }
+
     DateTime now = DateTime.now();
 
-    String currentDate = "${now.day}:${now.month}:-${now.year}"; //punchIn date
+    String currentDate = "${now.day}:${now.month}:${now.year}"; //punchIn date
     String currentTime = "${now.hour}:${now.minute}"; //punchIn time
     
     //entry is given in attendance DB's table
@@ -89,37 +104,56 @@ class _HomeScreenState extends State<HomeScreen>{
     
     final db = await dbHelper.database;
 
+    var todayRecord = await getTodayAttendance();
+
+    // no punch in yet
+    if (todayRecord == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        SnackBar(
+          content: Text(
+            "Please Punch In First",
+          ),
+        ),
+      );
+      return;
+    }
+    // already punched out
+    if (todayRecord['punchOut'] != '') {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+
+        SnackBar(
+          content: Text(
+            "Already Punched Out",
+          ),
+        ),
+      );
+
+      return;
+    }
+
     DateTime now = DateTime.now();
 
     String currentTime = "${now.hour}:${now.minute}"; //punchIn time
 
-    //fetch latest attendace record
-    //List → multiple rows
-    //Map → one row
-    //String → column name
-    //dynamic → value
-    List<Map<String, dynamic>> records = await db.query(
+    
+    
+    
+
+    int latestId = todayRecord['id']; 
+    String punchInTime = todayRecord['punchIn']; //punchIn time
+
+    await db.update(
       'attendance',
-      orderBy: 'id DESC',
-      limit: 1,
+      {
+        'punchOut': currentTime,
+        'workingHours': calculateHours(punchInTime, currentTime),
+      },
+      where: 'id = ?',
+      whereArgs: [latestId],
     );
     
-    if(records.isNotEmpty){
-
-      int latestId = records[0]['id']; //store id of latest entry
-      String punchInTime = records[0]['punchIn']; // store punchIn time of latest entry
-
-      await db.update(
-        'attendance',
-        {
-          'punchOut': currentTime,
-          'workingHours': calculateHours(punchInTime, currentTime),
-        },
-
-        where: 'id = ?',
-        whereArgs: [latestId],
-      );
-    }
     
 
     //snackbar shows alert
@@ -168,6 +202,28 @@ class _HomeScreenState extends State<HomeScreen>{
     // final formatted string
     return "$hours hrs $minutes mins";
   }
+
+  // Function to check if today's attendance already exists
+  Future<Map<String, dynamic>?>
+    getTodayAttendance() async {
+      final db = await dbHelper.database;
+      DateTime now = DateTime.now();
+      String currentDate = "${now.day}:${now.month}:${now.year}";
+
+      // query attendance table, fetch records matching today's date
+      List<Map<String, dynamic>> records = await db.query(
+        'attendance',
+        where: 'date = ?', // ? acts like placeholder
+        whereArgs: [currentDate], // value to replace ?
+        limit: 1,
+      );
+      // if attendance exists
+      if(records.isNotEmpty){
+        return records.first;
+      }
+      // no attendance found
+      return null;
+    }
 
   @override
   Widget build(BuildContext context){
@@ -326,6 +382,13 @@ class _HomeScreenState extends State<HomeScreen>{
           setState(() {
             currentIndex= index;
           });
+
+          if(index ==1){
+            Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (context) => AttendanceScreen(),),
+            );
+          }
         },
 
                 items: const[

@@ -81,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen>{
     await db.insert(
       'attendance', 
       {
+        'email': widget.email,
         'date': currentDate,
         'status': 'Present',
         'punchIn': currentTime,
@@ -210,11 +211,14 @@ class _HomeScreenState extends State<HomeScreen>{
       DateTime now = DateTime.now();
       String currentDate = "${now.day}:${now.month}:${now.year}";
 
-      // query attendance table, fetch records matching today's date
+      // query attendance table, fetch records matching today's date and user email
       List<Map<String, dynamic>> records = await db.query(
         'attendance',
-        where: 'date = ?', // ? acts like placeholder
-        whereArgs: [currentDate], // value to replace ?
+        where: 'date = ? AND email = ?', // ? acts like placeholder
+        whereArgs: [
+          currentDate,
+          widget.email,
+        ], // value to replace ?
         limit: 1,
       );
       // if attendance exists
@@ -386,26 +390,26 @@ class _HomeScreenState extends State<HomeScreen>{
           if(index ==1){
             Navigator.push(
               context, 
-              MaterialPageRoute(builder: (context) => AttendanceScreen(),),
+              MaterialPageRoute(builder: (context) => AttendanceScreen(email: widget.email)),
             );
           }
         },
 
-                items: const[
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home),
-                    label: "Home",
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.calendar_month),
-                    label: "Attendance",
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.person),
-                    label: "Profile",
-                  ),
-                ],
-              ),
+        items: const[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: "Home",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: "Attendance",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: "Profile",
+          ),
+        ],
+      ),
     );
   }
 }

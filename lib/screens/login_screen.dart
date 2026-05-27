@@ -107,7 +107,7 @@
             await prefs.setString("email", email);
           }
           //if details are correct => login successful
-          Navigator.push(
+          Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => HomeScreen(

@@ -42,11 +42,13 @@ class DatabaseHelper{
 
   // func to fetch data from database
   Future<List<Map<String,dynamic>>>
-    getAttendance() async {
+    getAttendance(String email) async {
       final db = await database;
 
       return await db.query(
         'attendance',
+        where: 'email = ?',
+        whereArgs: [email],
         orderBy: 'id DESC',
       );
     }
@@ -57,9 +59,11 @@ class DatabaseHelper{
 
     //create table: SQL table creation query.
     //autoincriment: Automatically increases IDs.
+    //email uniquely identifies user
     await db.execute('''
       CREATE TABLE attendance(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT,
         date TEXT,
         status TEXT,
         punchIn TEXT,

@@ -2,10 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../database/database_helper.dart';
 
-class AttendanceScreen extends StatefulWidget{
-  @override 
+class AttendanceScreen extends StatefulWidget {
+  // store logged-in user email
+  final String email;
+  // constructor
+  const AttendanceScreen({
+    super.key,
+    required this.email,
+  });
+  @override
   State<AttendanceScreen>
-    createState() => _AttendanceScreenState(); 
+      createState() =>
+          _AttendanceScreenState();
 }
 
 class _AttendanceScreenState extends State<AttendanceScreen>{
@@ -22,6 +30,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>{
     // split hour and minute
     List<String> parts =
         time.split(":");
+        
 
     // format hour
     String hour =
@@ -44,7 +53,7 @@ class _AttendanceScreenState extends State<AttendanceScreen>{
 
       // FutureBuilder waits for: database query completion
       body: FutureBuilder(
-        future: dbHelper.getAttendance(),
+        future: dbHelper.getAttendance(widget.email),
         builder: (context, snapshot) {
           
           // loading data

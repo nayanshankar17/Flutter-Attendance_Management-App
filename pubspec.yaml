@@ -17,6 +17,7 @@ dependencies:
   sqflite: ^2.3.0 #SQLite Database
   path: ^1.9.0 #database file paths
   shared_preferences: ^2.2.2 #used in "Remember Me"
+  intl: ^0.19.0
 
 
 dev_dependencies:

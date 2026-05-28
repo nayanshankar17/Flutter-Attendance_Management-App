@@ -1,7 +1,13 @@
 import 'package:attendance_app/screens/attendance_screen.dart';
-import 'package:flutter/material.dart';
 import 'package:attendance_app/screens/login_screen.dart';
+import 'package:attendance_app/screens/management_screen.dart';
+
+import 'package:flutter/material.dart';
+
 import 'package:shared_preferences/shared_preferences.dart';
+
+// date time formatting library
+import 'package:intl/intl.dart'; 
 
 //imports DatabaseHelper class 
 import '../database/database_helper.dart';
@@ -74,8 +80,8 @@ class _HomeScreenState extends State<HomeScreen>{
 
     DateTime now = DateTime.now();
 
-    String currentDate = "${now.day}:${now.month}:${now.year}"; //punchIn date
-    String currentTime = "${now.hour}:${now.minute}"; //punchIn time
+    String currentDate = DateFormat('dd-MM-yyyy',).format(now); //punchIn date
+    String currentTime = DateFormat('hh:mm a',).format(DateTime.now());; //punchIn time
     
     //entry is given in attendance DB's table
     await db.insert(
@@ -134,13 +140,7 @@ class _HomeScreenState extends State<HomeScreen>{
       return;
     }
 
-    DateTime now = DateTime.now();
-
-    String currentTime = "${now.hour}:${now.minute}"; //punchIn time
-
-    
-    
-    
+    String currentTime = DateFormat('hh:mm a',).format(DateTime.now());; //punchIn time
 
     int latestId = todayRecord['id']; 
     String punchInTime = todayRecord['punchIn']; //punchIn time
@@ -209,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen>{
     getTodayAttendance() async {
       final db = await dbHelper.database;
       DateTime now = DateTime.now();
-      String currentDate = "${now.day}:${now.month}:${now.year}";
+      String currentDate = DateFormat('dd-MM-yyyy',).format(now);
 
       // query attendance table, fetch records matching today's date and user email
       List<Map<String, dynamic>> records = await db.query(
@@ -379,22 +379,39 @@ class _HomeScreenState extends State<HomeScreen>{
           ),
         ),
       ),
-       bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
+
         currentIndex: currentIndex,
+        //bottom navigation_bar controls
+        onTap: (index) {
+          // Home Tab
+          if(index == 0){
+            setState(() {
+              currentIndex = 0;
+            });
+          }
 
-        onTap: (index){
-          setState(() {
-            currentIndex= index;
-          });
-
-          if(index ==1){
+          // Attendance Tab
+          else if(index == 1){
             Navigator.push(
-              context, 
-              MaterialPageRoute(builder: (context) => AttendanceScreen(email: widget.email)),
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                  AttendanceScreen(email: widget.email,),
+              ),
+            );
+          }
+          // Management Tab
+          else if(index == 2){
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ManagementScreen(),
+              ),
             );
           }
         },
-
+        
         items: const[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -405,8 +422,8 @@ class _HomeScreenState extends State<HomeScreen>{
             label: "Attendance",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Profile",
+            icon: Icon(Icons.manage_accounts),
+            label: "Management",
           ),
         ],
       ),

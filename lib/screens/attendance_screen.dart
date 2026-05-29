@@ -2,21 +2,80 @@ import 'package:flutter/material.dart';
 
 import '../database/database_helper.dart';
 
-class AttendanceScreen extends StatefulWidget {
+
+class AttendanceScreen extends StatelessWidget {
+  final String email;
+  const AttendanceScreen({super.key, required this.email,});
+
+  @override
+  Widget build(BuildContext context){
+    return DefaultTabController(
+        length: 3,
+        child: Scaffold(
+          appBar: AppBar(
+            centerTitle: true,
+            title: Text("Attendance"),
+            bottom: const TabBar(
+              tabs: [
+                Tab(text: "Calender"),
+                Tab(text: "Summary",),
+                Tab(text: "Punches")
+              ],
+            ),
+          ),
+          body: TabBarView(
+            children: [
+              CalendarTab(),
+              SummaryTab(),
+              PunchesTab(email: email,),
+            ],
+          ),
+        ),
+    );
+  }
+}
+
+class CalendarTab extends StatelessWidget{
+  const CalendarTab({super.key});
+
+  @override
+  Widget build(BuildContext context){
+    return const Center(
+      child: Text(
+        "Calender Comming Soon",
+        style: TextStyle(fontSize: 18)
+      ),
+    );
+  }
+}
+
+class SummaryTab extends StatelessWidget{
+  const SummaryTab({super.key});
+
+  @override
+  Widget build(BuildContext context){
+    return const Center(
+      child: Text(
+        "Calender Comming Soon",
+        style: TextStyle(fontSize: 18)
+      ),
+    );
+  }
+}
+
+class PunchesTab extends StatefulWidget {
   // store logged-in user email
   final String email;
   // constructor
-  const AttendanceScreen({
+  const PunchesTab({
     super.key,
     required this.email,
   });
   @override
-  State<AttendanceScreen>
-      createState() =>
-          _AttendanceScreenState();
+  State<PunchesTab> createState() => _PunchesTabState();
 }
 
-class _AttendanceScreenState extends State<AttendanceScreen>{
+class _PunchesTabState extends State<PunchesTab>{
   final DatabaseHelper dbHelper = DatabaseHelper();
 
   // function to format time properly
@@ -45,63 +104,75 @@ class _AttendanceScreenState extends State<AttendanceScreen>{
   }
 
   @override
-  Widget build(BuildContext context){
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Attendance Records"),
+  Widget build(BuildContext context) {
+
+    return FutureBuilder(
+      future: dbHelper.getAttendance(
+        widget.email,
       ),
 
-      // FutureBuilder waits for: database query completion
-      body: FutureBuilder(
-        future: dbHelper.getAttendance(widget.email),
-        builder: (context, snapshot) {
-          
-          // loading data
-          if(!snapshot.hasData){
-            return Center(
-              child: CircularProgressIndicator(),
-            );
-          }
+      builder: (context, snapshot) {
 
-          //store fetched data
-          List<Map<String, dynamic>>
+        if (!snapshot.hasData) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        List<Map<String, dynamic>>
             records = snapshot.data!;
 
-          //no records
-          if(records.isEmpty){
-            return Center(
-              child: Text("No attendance found"),
-            );
-          }
-
-          return ListView.builder(
-            itemCount: records.length, // number of entries
-            itemBuilder: (context, index) {
-              var record = records[index];
-              return Card(
-                margin: EdgeInsets.all(10),
-                child: ListTile(
-                  title: Text("Date: ${record["date"]}"),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Punch In: ${record["punchIn"]}",
-                      ),
-                      Text(
-                        "Punch Out: ${record["punchOut"]}",
-                      ),
-                      Text(
-                        "Hours: ${record["workingHours"]}",
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+        if (records.isEmpty) {
+          return Center(
+            child: Text(
+              "No attendance found",
+            ),
           );
-        },
-      ),
+        }
+
+        return ListView.builder(
+
+          itemCount: records.length,
+
+          itemBuilder: (context, index) {
+
+            var record = records[index];
+
+            return Card(
+
+              margin: EdgeInsets.all(10),
+
+              child: ListTile(
+
+                title: Text(
+                  "Date: ${record["date"]}",
+                ),
+
+                subtitle: Column(
+
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+
+                  children: [
+
+                    Text(
+                      "Punch In: ${formatTime(record["punchIn"])}",
+                    ),
+
+                    Text(
+                      "Punch Out: ${formatTime(record["punchOut"])}",
+                    ),
+
+                    Text(
+                      "Hours: ${record["workingHours"]}",
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

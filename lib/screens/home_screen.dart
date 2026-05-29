@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen>{
   
   //func to punchOut
   Future<void> punchOut() async{
-    
+    print(widget.email);
     print("Punch Out clicked");
     
     final db = await dbHelper.database;
@@ -165,42 +165,29 @@ class _HomeScreenState extends State<HomeScreen>{
     );
   }
 
-  String calculateHours(String punchIn, String punchOut){
-      // split hours and minutes
-    List<String> inParts =
-        punchIn.split(":");
+  String calculateHours(
+    String punchIn,
+    String punchOut,
+  ) {
 
-    List<String> outParts =
-        punchOut.split(":");
+    DateFormat format =
+        DateFormat('hh:mm a');
 
-    // convert string to integers
-    int inHour =
-        int.parse(inParts[0]);
+    DateTime inTime =
+        format.parse(punchIn);
 
-    int inMinute =
-        int.parse(inParts[1]);
+    DateTime outTime =
+        format.parse(punchOut);
 
-    int outHour =
-        int.parse(outParts[0]);
+    Duration difference =
+        outTime.difference(inTime);
 
-    int outMinute =
-        int.parse(outParts[1]);
-
-    // convert everything into minutes
-    int totalMinutes =
-
-        (outHour * 60 + outMinute) -
-
-        (inHour * 60 + inMinute);
-
-    // separate hours and remaining minutes
     int hours =
-        totalMinutes ~/ 60;
+        difference.inHours;
 
     int minutes =
-        totalMinutes % 60;
+        difference.inMinutes % 60;
 
-    // final formatted string
     return "$hours hrs $minutes mins";
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-
+import 'package:table_calendar/table_calendar.dart';
 import '../database/database_helper.dart';
+import 'package:intl/intl.dart';
 
 
 class AttendanceScreen extends StatelessWidget {
@@ -25,7 +26,7 @@ class AttendanceScreen extends StatelessWidget {
           ),
           body: TabBarView(
             children: [
-              CalendarTab(),
+              CalendarTab(email: email,),
               SummaryTab(),
               PunchesTab(email: email,),
             ],
@@ -35,18 +36,18 @@ class AttendanceScreen extends StatelessWidget {
   }
 }
 
-class CalendarTab extends StatelessWidget{
-  const CalendarTab({super.key});
+//tab for calender
+class CalendarTab extends StatefulWidget {
+
+  final String email;
+
+  const CalendarTab({
+    super.key,
+    required this.email,
+  });
 
   @override
-  Widget build(BuildContext context){
-    return const Center(
-      child: Text(
-        "Calender Comming Soon",
-        style: TextStyle(fontSize: 18)
-      ),
-    );
-  }
+  State<CalendarTab> createState() =>  _CalendarTabState();
 }
 
 class SummaryTab extends StatelessWidget{
@@ -73,6 +74,217 @@ class PunchesTab extends StatefulWidget {
   });
   @override
   State<PunchesTab> createState() => _PunchesTabState();
+}
+
+//class for calandar tab
+class _CalendarTabState extends State<CalendarTab>{
+  
+  final DatabaseHelper dbHelper = DatabaseHelper();
+
+  List<Map<String,dynamic>>
+  attendanceRecords = [];
+
+  Map<String, dynamic>? selectedRecord;
+  bool isLoading = false;
+  Future<void> loadAttendance(DateTime selectedDay) async {
+
+    setState(() {
+      isLoading = true;
+    });
+
+    String date = DateFormat('dd-MM-yyyy')  .format(selectedDay);
+
+    final record = await dbHelper.getAttendanceByDate(widget.email,date);
+
+    setState(() {
+      selectedRecord = record;
+      isLoading = false;
+    });
+  }
+
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+
+
+  Future<void>loadAttendanceStatuses() async {
+    attendanceRecords = await dbHelper.getAttendanceStatuses(widget.email);
+    setState(() {});
+  }
+  @override
+  void initState() {
+    super.initState();
+    loadAttendanceStatuses();
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+
+        TableCalendar(
+          firstDay: DateTime.utc(2020, 1, 1),
+          lastDay: DateTime.utc(2035, 12, 31),
+          focusedDay: _focusedDay,
+
+          selectedDayPredicate: (day) {
+            return isSameDay(_selectedDay, day);
+          },
+
+          onDaySelected: (
+            selectedDay,
+            focusedDay,
+          ) {
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+            loadAttendance(selectedDay);
+          },
+
+
+          calendarBuilders: CalendarBuilders(
+            
+            defaultBuilder: (context,day,focusedDay,) {
+
+              if (day.weekday ==DateTime.saturday || day.weekday == DateTime.sunday) {
+                return Container(
+                  margin:const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(
+                      color: Colors.grey,
+                    ),
+
+                    borderRadius:
+                        BorderRadius.circular(8),
+                    ),
+
+                  child: Center(
+                    child: Text(
+                      '${day.day}',
+                    ),
+                  ),
+                );
+              }
+              String date = DateFormat('dd-MM-yyyy').format(day);
+
+              Map<String,dynamic>? record;
+
+              try {
+
+                record =
+                    attendanceRecords.firstWhere(
+                  (r) => r['date'] == date,
+                );
+
+              } catch (e) {
+                record = null;
+              }
+
+              Color? color;
+
+              if (record != null) {
+
+                switch (
+                  record['status']
+                ) {
+
+                  case 'Present':
+                    color = Colors.green;
+                    break;
+
+                  case 'Late':
+                    color = Colors.blue;
+                    break;
+
+                  case 'Half Day':
+                    color = Colors.amber;
+                    break;
+
+                  case 'Absent':
+                    color = Colors.red;
+                    break;
+                }
+              }
+
+              return Container(
+                margin:
+                    const EdgeInsets.all(4),
+
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius:
+                      BorderRadius.circular(8),
+                ),
+
+                child: Center(
+                  child: Text(
+                    '${day.day}',
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+
+                Text(
+                  _selectedDay == null
+                      ? "No date selected"
+                      : "Date: ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}",
+                ),
+
+                const SizedBox(height: 10),
+
+                if (isLoading)
+                  const CircularProgressIndicator(),
+
+                if (!isLoading &&
+                    selectedRecord == null)
+                  const Text(
+                    "No attendance record",
+                  ),
+                
+                if (!isLoading && selectedRecord != null)
+
+                  Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+
+                      Text(
+                        "Punch In: ${selectedRecord!["punchIn"]}",
+                      ),
+
+                      Text(
+                        "Punch Out: ${selectedRecord!["punchOut"]}",
+                      ),
+
+                      Text(
+                        "Hours: ${selectedRecord!["workingHours"]}",
+                      ),
+                      Text(
+                        "Status: ${selectedRecord!["status"]}",
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+}
 }
 
 class _PunchesTabState extends State<PunchesTab>{
@@ -147,6 +359,10 @@ class _PunchesTabState extends State<PunchesTab>{
                 title: Text(
                   "Date: ${record["date"]}",
                 ),
+
+                onTap: () {
+                  print(record);
+                },
 
                 subtitle: Column(
 

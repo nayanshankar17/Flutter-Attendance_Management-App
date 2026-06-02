@@ -60,8 +60,26 @@ class _HomeScreenState extends State<HomeScreen>{
   // stores the idx of tabs from bottom navihation bar
   int currentIndex = 0;
 
+
   //func to handle punchIn
   Future<void> punchIn() async{
+    DateTime now = DateTime.now();
+
+    if (now.weekday == DateTime.saturday ||
+        now.weekday == DateTime.sunday) {
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Weekend Holiday",
+          ),
+        ),
+      );
+
+      return;
+    }
+
     final db = await dbHelper.database;
 
     // check today's attendance
@@ -78,8 +96,6 @@ class _HomeScreenState extends State<HomeScreen>{
       return;
     }
 
-    DateTime now = DateTime.now();
-
     String currentDate = DateFormat('dd-MM-yyyy',).format(now); //punchIn date
     String currentTime = DateFormat('hh:mm a',).format(DateTime.now());; //punchIn time
     
@@ -89,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen>{
       {
         'email': widget.email,
         'date': currentDate,
-        'status': 'Present',
+        'status': 'Pending',
         'punchIn': currentTime,
         'punchOut': '',
         'workingHours': '',
@@ -106,8 +122,23 @@ class _HomeScreenState extends State<HomeScreen>{
   
   //func to punchOut
   Future<void> punchOut() async{
-    print(widget.email);
-    print("Punch Out clicked");
+    DateTime now = DateTime.now();
+
+    if (now.weekday == DateTime.saturday ||
+        now.weekday == DateTime.sunday) {
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Weekend Holiday",
+          ),
+        ),
+      );
+
+      return;
+    }
+
     
     final db = await dbHelper.database;
 
@@ -145,11 +176,20 @@ class _HomeScreenState extends State<HomeScreen>{
     int latestId = todayRecord['id']; 
     String punchInTime = todayRecord['punchIn']; //punchIn time
 
+    String status = calculateStatus(punchInTime,currentTime);
+
     await db.update(
       'attendance',
       {
         'punchOut': currentTime,
-        'workingHours': calculateHours(punchInTime, currentTime),
+
+        'workingHours':
+            calculateHours(
+              punchInTime,
+              currentTime,
+            ),
+
+        'status': status,
       },
       where: 'id = ?',
       whereArgs: [latestId],
@@ -191,6 +231,51 @@ class _HomeScreenState extends State<HomeScreen>{
     return "$hours hrs $minutes mins";
   }
 
+  // func to fetch today's attendance record
+  String calculateStatus(String punchIn,String punchOut,) {
+
+    DateFormat format =
+        DateFormat('hh:mm a');
+
+    DateTime inTime =
+        format.parse(punchIn);
+
+    DateTime outTime =
+        format.parse(punchOut);
+
+    Duration duration =
+        outTime.difference(inTime);
+
+    double hours =
+        duration.inMinutes / 60;
+
+    DateTime lateLimit =
+        format.parse('09:05 AM');
+
+    DateTime halfDayLimit =
+        format.parse('04:55 PM');
+
+    if (hours < 6) {
+      return "Absent";
+    }
+
+    if (hours < 8) {
+      return "Half Day";
+    }
+
+    if (outTime.isBefore(halfDayLimit)) {
+      return "Half Day";
+    }
+
+    if (inTime.isAfter(lateLimit)) {
+      return "Late";
+    }
+
+
+
+    return "Present";
+  }
+
   // Function to check if today's attendance already exists
   Future<Map<String, dynamic>?>
     getTodayAttendance() async {
@@ -215,6 +300,103 @@ class _HomeScreenState extends State<HomeScreen>{
       // no attendance found
       return null;
     }
+
+
+    //============================================================
+    //                      MOCK DATA
+    //============================================================
+    Future<void> generateMockData() async {
+
+      final db = await dbHelper.database;
+
+      DateTime today = DateTime.now();
+
+      for (int i = 1; i <= 60; i++) {
+
+        DateTime day =
+            today.subtract(Duration(days: i));
+
+        // Skip weekends
+        if (day.weekday == DateTime.saturday ||
+            day.weekday == DateTime.sunday) {
+          continue;
+        }
+
+        String date =
+            DateFormat('dd-MM-yyyy')
+                .format(day);
+
+        String status;
+
+        if (i % 10 == 0) {
+          status = "Absent";
+        }
+        else if (i % 7 == 0) {
+          status = "Late";
+        }
+        else if (i % 5 == 0) {
+          status = "Half Day";
+        }
+        else {
+          status = "Present";
+        }
+
+        String punchIn;
+        String punchOut;
+        String workingHours;
+
+        switch(status){
+
+          case "Late":
+            punchIn = "09:20 AM";
+            punchOut = "06:00 PM";
+            workingHours = "8 hrs 40 mins";
+            break;
+
+          case "Half Day":
+            punchIn = "09:00 AM";
+            punchOut = "03:30 PM";
+            workingHours = "6 hrs 30 mins";
+            break;
+
+          case "Absent":
+            punchIn = "";
+            punchOut = "";
+            workingHours = "";
+            break;
+
+          default:
+            punchIn = "08:55 AM";
+            punchOut = "06:05 PM";
+            workingHours = "9 hrs 10 mins";
+        }
+
+        await db.insert(
+          'attendance',
+          {
+            'email': widget.email,
+            'date': date,
+            'status': status,
+            'punchIn': punchIn,
+            'punchOut': punchOut,
+            'workingHours': workingHours,
+          },
+        );
+      }
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Mock Data Generated",
+          ),
+        ),
+      );
+    }
+
+
+
+
 
   @override
   Widget build(BuildContext context){
@@ -360,7 +542,16 @@ class _HomeScreenState extends State<HomeScreen>{
                       ),
                     ),
                   ),
+
+
+                  
                 ),
+                ElevatedButton(
+                  onPressed: generateMockData,
+                  child: const Text(
+                    "Generate Mock Data",
+                  ),
+                )
             ],
             
           ),

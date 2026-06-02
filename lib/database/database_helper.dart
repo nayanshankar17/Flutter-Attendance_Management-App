@@ -72,5 +72,47 @@ class DatabaseHelper{
       )
     ''');
   } 
+
+  // func to insert attendance record into database
+  Future<Map<String, dynamic>?> getAttendanceByDate(String email, String date) async {
+    final db = await database;
+    final result = await db.query('attendance', where: 'email = ? AND date = ?', whereArgs: [email, date]);
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
+  // func to fetch attendance status for all dates for a user
+  Future<List<Map<String,dynamic>>>  getAttendanceStatuses(String email,) async {
+
+    final db = await database;
+
+    return await db.query(
+      'attendance',
+      columns: [
+        'date',
+        'status',
+      ],
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+  }
+  
+  //============================
+  //============================
+  Future<void> clearAttendance(
+    String email,
+  ) async {
+
+    final db = await database;
+
+    await db.delete(
+      'attendance',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+  }
+
+
 }
 

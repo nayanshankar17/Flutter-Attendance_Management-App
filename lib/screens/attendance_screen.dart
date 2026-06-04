@@ -27,7 +27,7 @@ class AttendanceScreen extends StatelessWidget {
           body: TabBarView(
             children: [
               CalendarTab(email: email,),
-              SummaryTab(),
+              SummaryTab(email: email,),
               PunchesTab(email: email,),
             ],
           ),
@@ -50,18 +50,18 @@ class CalendarTab extends StatefulWidget {
   State<CalendarTab> createState() =>  _CalendarTabState();
 }
 
-class SummaryTab extends StatelessWidget{
-  const SummaryTab({super.key});
+class SummaryTab extends StatefulWidget {
+
+  final String email;
+
+  const SummaryTab({
+    super.key,
+    required this.email,
+  });
 
   @override
-  Widget build(BuildContext context){
-    return const Center(
-      child: Text(
-        "Calender Comming Soon",
-        style: TextStyle(fontSize: 18)
-      ),
-    );
-  }
+  State<SummaryTab> createState() =>
+      _SummaryTabState();
 }
 
 class PunchesTab extends StatefulWidget {
@@ -389,6 +389,127 @@ class _PunchesTabState extends State<PunchesTab>{
           },
         );
       },
+    );
+  }
+}
+
+class _SummaryTabState
+    extends State<SummaryTab> {
+
+  final DatabaseHelper dbHelper =
+      DatabaseHelper();
+
+  @override
+  Widget build(BuildContext context) {
+
+    return FutureBuilder(
+
+      future: dbHelper.getAttendance(
+        widget.email,
+      ),
+
+      builder: (context, snapshot) {
+
+        if (!snapshot.hasData) {
+
+          return const Center(
+            child:
+                CircularProgressIndicator(),
+          );
+        }
+
+        List<Map<String, dynamic>>
+            records = snapshot.data!;
+
+        int presentCount = 0;
+        int absentCount = 0;
+        int leaveCount = 0;
+
+        for (var record in records) {
+
+          String status =
+              record['status'];
+
+          if (status == "Present") {
+            presentCount++;
+          }
+
+          else if (status == "Absent") {
+            absentCount++;
+          }
+
+          else if (status == "Leave") {
+            leaveCount++;
+          }
+        }
+
+        return Padding(
+
+          padding:
+              const EdgeInsets.all(16),
+
+          child: Column(
+
+            children: [
+
+              buildSummaryCard(
+                "Present",
+                presentCount,
+                Colors.green,
+              ),
+
+              const SizedBox(height: 15),
+
+              buildSummaryCard(
+                "Absent",
+                absentCount,
+                Colors.red,
+              ),
+
+              const SizedBox(height: 15),
+
+              buildSummaryCard(
+                "Leave",
+                leaveCount,
+                Colors.orange,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
+  Widget buildSummaryCard(
+    String title,
+    int count,
+    Color color,
+  ) {
+
+    return Card(
+
+      elevation: 3,
+
+      child: ListTile(
+
+        leading: CircleAvatar(
+          backgroundColor: color,
+        ),
+
+        title: Text(title),
+
+        trailing: Text(
+
+          count.toString(),
+
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight:
+                FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 }

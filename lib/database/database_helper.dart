@@ -114,5 +114,17 @@ class DatabaseHelper{
   }
 
 
+
+  Future<List<Map<String, dynamic>>>
+    getAttendanceRecords(String email) async {
+
+  final db = await database;
+
+  return await db.query(
+    'attendance',
+    where: 'email = ?',
+    whereArgs: [email],
+  );
+}
 }
 

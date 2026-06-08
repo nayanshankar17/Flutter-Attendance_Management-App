@@ -3,8 +3,7 @@ import 'package:attendance_app/screens/login_screen.dart';
 import 'package:attendance_app/screens/management_screen.dart';
 
 import 'package:flutter/material.dart';
-
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences/shared_preferences.dart'; 
 
 // date time formatting library
 import 'package:intl/intl.dart'; 
@@ -21,7 +20,6 @@ class HomeScreen extends StatefulWidget {
 
   const HomeScreen({
     super.key,
-
     required this.name,
     required this.email,
     required this.phone,
@@ -38,11 +36,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen>{
-  // add the controllers here later
-  // ...
-  // ...
-  // ...
-
   final DatabaseHelper dbHelper = DatabaseHelper();
 
   Future<void> logoutUser() async{
@@ -65,18 +58,14 @@ class _HomeScreenState extends State<HomeScreen>{
   Future<void> punchIn() async{
     DateTime now = DateTime.now();
 
-    if (now.weekday == DateTime.saturday ||
-        now.weekday == DateTime.sunday) {
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+    if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
+      ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
             "Weekend Holiday",
           ),
         ),
       );
-
       return;
     }
 
@@ -234,6 +223,13 @@ class _HomeScreenState extends State<HomeScreen>{
   // func to fetch today's attendance record
   String calculateStatus(String punchIn,String punchOut,) {
 
+    if(punchIn.isEmpty){
+      return "Absent";
+    }
+
+    if(punchOut.isEmpty){
+      return "Incomplete";
+    }
     DateFormat format =
         DateFormat('hh:mm a');
 
@@ -270,8 +266,6 @@ class _HomeScreenState extends State<HomeScreen>{
     if (inTime.isAfter(lateLimit)) {
       return "Late";
     }
-
-
 
     return "Present";
   }
@@ -394,7 +388,53 @@ class _HomeScreenState extends State<HomeScreen>{
       );
     }
 
-
+    
+    Widget buildStatusCard() {
+      return FutureBuilder(
+        future: getTodayAttendance(),
+        builder: (context, snapshot) {
+          String status = "Not Marked";
+          String punchIn = "--";
+          String punchOut = "--";
+          if(snapshot.hasData && snapshot.data != null){
+            var record = snapshot.data!;
+            status = record["status"];
+            punchIn = record["punchIn"].isEmpty ? "--" : record["punchIn"];
+            punchOut = record["punchOut"].isEmpty ? "--" : record["punchOut"];
+          }
+          return SizedBox(
+            width: double.infinity,
+            child: Card(
+              elevation: 4,
+              shape:
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              child: Padding(
+                padding: const EdgeInsets.all(16), 
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Today's Attendance",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text("Status : $status"),
+                    Text("Punch In : $punchIn"),
+                    Text("Punch Out : $punchOut"),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
 
 
 
@@ -416,46 +456,83 @@ class _HomeScreenState extends State<HomeScreen>{
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 30),
-              Row(
-                
+              Card(
 
-                children: [
-                  Image.asset("assets/images/logo.jpg", height:100),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                elevation: 4,
+
+                shape:
+                    RoundedRectangleBorder(
+                  borderRadius:
+                      BorderRadius.circular(15),
+                ),
+
+                child: Padding(
+
+                  padding:
+                      const EdgeInsets.all(16),
+
+                  child: Row(
 
                     children: [
 
-                      Text(
-                        widget.name,
+                      CircleAvatar(
 
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                        radius: 35,
+
+                        backgroundImage:
+                            AssetImage(
+                          "assets/images/logo.jpg",
                         ),
                       ),
 
-                      SizedBox(height: 5),
+                      SizedBox(width: 20),
 
-                      Text(
-                        widget.designation,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[700],
+                      Expanded(
+
+                        child: Column(
+
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+
+                          children: [
+
+                            Text(
+
+                              widget.name,
+
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+
+                            Text(
+                              widget.designation,
+                            ),
+
+                            SizedBox(height: 5),
+
+                            Text(
+                              widget.email,
+                            ),
+
+                            Text(
+                              widget.phone,
+                            ),
+                          ],
                         ),
                       ),
-
-                      SizedBox(height: 5),
-
-                      Text(widget.email),
-
-                      Text(widget.phone),
                     ],
                   ),
-                ],
+                ),
               ),
-              SizedBox(height: 30),
+
+              SizedBox(height: 20),
+
+              buildStatusCard(),
+
+              SizedBox(height: 20),
               Row(
                 children: [
                   //used when two items are added in a row using width
@@ -517,15 +594,13 @@ class _HomeScreenState extends State<HomeScreen>{
                   ),
                 ],
               ),
-              SizedBox(height: 300),
+              SizedBox(height: 30),
 
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-
                   child: ElevatedButton(
                     onPressed: logoutUser,
-
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       shape: RoundedRectangleBorder(
@@ -533,7 +608,6 @@ class _HomeScreenState extends State<HomeScreen>{
                             BorderRadius.circular(12),
                       ),
                     ),
-
                     child: Text(
                       "Logout",
                       style: TextStyle(
@@ -542,10 +616,9 @@ class _HomeScreenState extends State<HomeScreen>{
                       ),
                     ),
                   ),
-
-
-                  
                 ),
+
+                SizedBox(height: 30),
                 ElevatedButton(
                   onPressed: generateMockData,
                   child: const Text(

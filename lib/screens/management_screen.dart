@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'appraisal_screen.dart';
+import 'help_desk_screen.dart';
+import 'salary_slip_screen.dart'; 
 
 class ManagementScreen extends StatelessWidget {
   const ManagementScreen({super.key,});
@@ -35,7 +38,7 @@ class ManagementScreen extends StatelessWidget {
             buildManagementCard(
               context,
               Icons.description_outlined,
-              "Apprasial Letter",
+              "Appraisal Letter",
             ), 
           ],
         ),
@@ -88,16 +91,39 @@ class ManagementScreen extends StatelessWidget {
 
         onTap: () {
 
-          ScaffoldMessenger.of(context)
-              .showSnackBar(
+          if(title == "Salary Slip"){
 
-            SnackBar(
-              content: Text(
-                "$title Clicked",
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const SalarySlipScreen(),
               ),
-            ),
-          );
-        },
+            );
+          }
+
+          else if(title == "Help Desk"){
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const HelpDeskScreen(),
+              ),
+            );
+          }
+
+          else if(title == "Appraisal Letter"){
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const AppraisalScreen(),
+              ),
+            );
+          }
+        }
       ),
     );
   }

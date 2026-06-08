@@ -244,12 +244,6 @@
                         Text("Remember Me"),
                       ],
                     ),
-
-                    TextButton(
-                      onPressed: () {},
-
-                      child: Text("Forgot Password?"),
-                    ),
                   ],
                 ),
 

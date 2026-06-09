@@ -9,7 +9,6 @@ class DatabaseHelper{
   // Getter function to access the database
   // Future<Database> means: this function will return a Database object later
   Future<Database> get database async{
-
     //if a DB already exists, return the existing database  
     if(_database != null){
       return _database!;
@@ -82,11 +81,11 @@ class DatabaseHelper{
     }
     return null;
   }
+
+
   // func to fetch attendance status for all dates for a user
   Future<List<Map<String,dynamic>>>  getAttendanceStatuses(String email,) async {
-
     final db = await database;
-
     return await db.query(
       'attendance',
       columns: [
@@ -112,19 +111,6 @@ class DatabaseHelper{
       whereArgs: [email],
     );
   }
-
-
-
-  Future<List<Map<String, dynamic>>>
-    getAttendanceRecords(String email) async {
-
-  final db = await database;
-
-  return await db.query(
-    'attendance',
-    where: 'email = ?',
-    whereArgs: [email],
-  );
-}
+  
 }
 

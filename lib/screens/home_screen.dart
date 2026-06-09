@@ -38,33 +38,97 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen>{
   final DatabaseHelper dbHelper = DatabaseHelper();
 
-  Future<void> logoutUser() async{
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+  // ========== Widget for Attendance Info ==========
+  // FutureBuilder is used because attendance data is fetched asynchronously from SQLite. 
+  // It automatically rebuilds the UI when the Future completes.
+  Widget buildStatusCard() {
+    return FutureBuilder(
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => LoginScreen()
-      ),   
+        future: getTodayAttendance(),
+        builder: (context, snapshot) {
+          String status = "Not Marked";
+          String punchIn = "--";
+          String punchOut = "--";
+          String workingHours = "--";
+          if(snapshot.hasData && snapshot.data != null){
+            var record = snapshot.data!;
+            status = record["status"];
+            punchIn = record["punchIn"].isEmpty ? "--" : record["punchIn"];
+            punchOut = record["punchOut"].isEmpty ? "--" : record["punchOut"];
+            workingHours = record["workingHours"].isEmpty ? "--" : record["workingHours"];
+          }
+          return SizedBox(
+            width: double.infinity,
+            child: Card(
+              elevation: 4,
+              shape:
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              child: Padding(
+                padding: const EdgeInsets.all(16), 
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Today's Attendance",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight:
+                            FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Status : $status",
+                      style: TextStyle(
+                        color: getStatusColor(status),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text("Punch In : $punchIn"),
+                    Text("Punch Out : $punchOut"),
+                    Text("Working Hours : $workingHours"),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
     );
   }
-  
-  // stores the idx of tabs from bottom navihation bar
-  int currentIndex = 0;
 
-  // func to check if yesterdays status
+
+  // ========== FUNC TO EDIT COLOR OF STATUS IN HOMESCREEN DISPLAY ===========
+  Color getStatusColor(String status){
+    switch(status){
+      case "Present":
+        return Colors.green;
+      case "Late":
+        return Colors.blue;
+      case "Half Day":
+        return Colors.orange;
+      case "Absent":
+        return Colors.red;
+      case "Incomplete":
+        return Colors.purple;
+      default:
+        return Colors.black;
+    }
+  }
+
+
+  // ============ func to check if yesterdays status ===========
   @override
   void initState() {
     super.initState();
-
-    updateIncompleteAttendance();
+    updateIncompleteAttendance(); // main func that checks yesterday's attendance
   }
 
-  //func to handle punchIn
+
+  //================= FUNCTION TO HANDLE PUNCHIN =================
   Future<void> punchIn() async{
     DateTime now = DateTime.now();
-
     if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -114,16 +178,14 @@ class _HomeScreenState extends State<HomeScreen>{
         content: Text("Punch In recorded."),
       ),
     );
-    setState(() {});
+    setState(() {});// instant UI update
   }
   
-  //func to punchOut
+
+  //================= FUNCTION TO HANDLE PUNCHOUT =================
   Future<void> punchOut() async{
     DateTime now = DateTime.now();
-
-    if (now.weekday == DateTime.saturday ||
-        now.weekday == DateTime.sunday) {
-
+    if (now.weekday == DateTime.saturday || now.weekday == DateTime.sunday) {
       ScaffoldMessenger.of(context)
           .showSnackBar(
         const SnackBar(
@@ -132,19 +194,16 @@ class _HomeScreenState extends State<HomeScreen>{
           ),
         ),
       );
-
       return;
     }
 
-    
     final db = await dbHelper.database;
 
     var todayRecord = await getTodayAttendance();
 
     // no punch in yet
     if (todayRecord == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             "Please Punch In First",
@@ -153,6 +212,7 @@ class _HomeScreenState extends State<HomeScreen>{
       );
       return;
     }
+
     // already punched out
     if (todayRecord['punchOut'] != '') {
       ScaffoldMessenger.of(context)
@@ -164,7 +224,6 @@ class _HomeScreenState extends State<HomeScreen>{
           ),
         ),
       );
-
       return;
     }
 
@@ -173,101 +232,69 @@ class _HomeScreenState extends State<HomeScreen>{
     int latestId = todayRecord['id']; 
     String punchInTime = todayRecord['punchIn']; //punchIn time
 
-    String status = calculateStatus(punchInTime,currentTime);
+    String status = calculateStatus(punchInTime,currentTime); // FUNC TO CALC STATUS
 
     await db.update(
       'attendance',
       {
         'punchOut': currentTime,
-
-        'workingHours':
-            calculateHours(
-              punchInTime,
-              currentTime,
-            ),
-
+        'workingHours': calculateHours(punchInTime,currentTime,),
         'status': status,
       },
       where: 'id = ?',
       whereArgs: [latestId],
     );
     
-    
-
     //snackbar shows alert
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text("Punch Out recorded."),
       ),
     );
-    setState(() {});
+    setState(() {}); // instant UI update
   }
 
-  String calculateHours(
-    String punchIn,
-    String punchOut,
-  ) {
 
-    DateFormat format =
-        DateFormat('hh:mm a');
+  // ========== FUNC TO CALCULATE THE WORK_HOURS ==========
+  String calculateHours(String punchIn, String punchOut) {
 
-    DateTime inTime =
-        format.parse(punchIn);
+    DateFormat format = DateFormat('hh:mm a');
+    DateTime inTime = format.parse(punchIn);
+    DateTime outTime = format.parse(punchOut);
 
-    DateTime outTime =
-        format.parse(punchOut);
-
-    Duration difference =
-        outTime.difference(inTime);
-
-    int hours =
-        difference.inHours;
-
-    int minutes =
-        difference.inMinutes % 60;
+    Duration difference = outTime.difference(inTime);
+    int hours = difference.inHours;
+    int minutes = difference.inMinutes % 60;
 
     return "$hours hrs $minutes mins";
   }
 
-  // func to fetch today's attendance record
-  String calculateStatus(String punchIn,String punchOut,) {
+
+  // ========== func to calc attendance status ==========
+  String calculateStatus(String punchIn, String punchOut,) {
 
     if(punchIn.isEmpty){
       return "Absent";
     }
-    DateFormat format =
-        DateFormat('hh:mm a');
 
-    DateTime inTime =
-        format.parse(punchIn);
+    DateFormat format = DateFormat('hh:mm a');
+    DateTime inTime = format.parse(punchIn);
+    DateTime outTime = format.parse(punchOut);
+    Duration duration = outTime.difference(inTime);
+    double hours = duration.inMinutes / 60;
 
-    DateTime outTime =
-        format.parse(punchOut);
-
-    Duration duration =
-        outTime.difference(inTime);
-
-    double hours =
-        duration.inMinutes / 60;
-
-    DateTime lateLimit =
-        format.parse('09:05 AM');
-
-    DateTime halfDayLimit =
-        format.parse('04:55 PM');
+    DateTime lateLimit = format.parse('09:05 AM');
+    DateTime halfDayLimit = format.parse('04:55 PM');
 
     if (hours < 6) {
       return "Absent";
     }
-
     if (hours < 8) {
       return "Half Day";
     }
-
     if (outTime.isBefore(halfDayLimit)) {
       return "Half Day";
     }
-
     if (inTime.isAfter(lateLimit)) {
       return "Late";
     }
@@ -275,32 +302,34 @@ class _HomeScreenState extends State<HomeScreen>{
     return "Present";
   }
 
-  // Function to check if today's attendance already exists
+
+  // ========== Function to check if today's attendance already exists ==========
   Future<Map<String, dynamic>?> getTodayAttendance() async {
       final db = await dbHelper.database;
       DateTime now = DateTime.now();
-      String currentDate = DateFormat('dd-MM-yyyy',).format(now);
+      String currentDate = DateFormat('dd-MM-yyyy').format(now);
 
       // query attendance table, fetch records matching today's date and user email
-      List<Map<String, dynamic>> records = await db.query(
-        'attendance',
-        where: 'date = ? AND email = ?', // ? acts like placeholder
-        whereArgs: [
-          currentDate,
-          widget.email,
-        ], // value to replace ?
-        limit: 1,
-      );
-      // if attendance exists
+        List<Map<String, dynamic>> records = await db.query(
+          'attendance',
+          where: 'date = ? AND email = ?', // ? acts like placeholder
+          whereArgs: [
+            currentDate,
+            widget.email,
+          ], // value to replace ?
+          limit: 1, // Return only 1 record from the database query, even if multiple records match the condition.
+        );
+        // if attendance exists
       if(records.isNotEmpty){
         return records.first;
       }
       // no attendance found
-      return null;
-    }
+    
+    return null;
+  }
 
 
-  // func to check is the user missed yesterday's attandance
+  //  ========== func to check is the user missed yesterday's attandance ==========
   Future<void> updateIncompleteAttendance() async {
     final db = await dbHelper.database;
 
@@ -325,149 +354,117 @@ class _HomeScreenState extends State<HomeScreen>{
       ],
     );
   }
+  
+  
+  // =============== FUNC TO HANDLE LOGOUT ===============
+  Future<void> logoutUser() async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginScreen()
+      ),   
+    );
+  }
+
+
+  // stores the idx of tabs from bottom navihation bar
+  int currentIndex = 0;
+
 
     //============================================================
     //                      MOCK DATA
     //============================================================
-    Future<void> generateMockData() async {
+    // Future<void> generateMockData() async {
 
-      final db = await dbHelper.database;
+    //   final db = await dbHelper.database;
 
-      DateTime today = DateTime.now();
+    //   DateTime today = DateTime.now();
 
-      for (int i = 1; i <= 60; i++) {
+    //   for (int i = 1; i <= 60; i++) {
 
-        DateTime day =
-            today.subtract(Duration(days: i));
+    //     DateTime day =
+    //         today.subtract(Duration(days: i));
 
-        // Skip weekends
-        if (day.weekday == DateTime.saturday ||
-            day.weekday == DateTime.sunday) {
-          continue;
-        }
+    //     // Skip weekends
+    //     if (day.weekday == DateTime.saturday ||
+    //         day.weekday == DateTime.sunday) {
+    //       continue;
+    //     }
 
-        String date =
-            DateFormat('dd-MM-yyyy')
-                .format(day);
+    //     String date =
+    //         DateFormat('dd-MM-yyyy')
+    //             .format(day);
 
-        String status;
+    //     String status;
 
-        if (i % 10 == 0) {
-          status = "Absent";
-        }
-        else if (i % 7 == 0) {
-          status = "Late";
-        }
-        else if (i % 5 == 0) {
-          status = "Half Day";
-        }
-        else {
-          status = "Present";
-        }
+    //     if (i % 10 == 0) {
+    //       status = "Absent";
+    //     }
+    //     else if (i % 7 == 0) {
+    //       status = "Late";
+    //     }
+    //     else if (i % 5 == 0) {
+    //       status = "Half Day";
+    //     }
+    //     else {
+    //       status = "Present";
+    //     }
 
-        String punchIn;
-        String punchOut;
-        String workingHours;
+    //     String punchIn;
+    //     String punchOut;
+    //     String workingHours;
 
-        switch(status){
+    //     switch(status){
 
-          case "Late":
-            punchIn = "09:20 AM";
-            punchOut = "06:00 PM";
-            workingHours = "8 hrs 40 mins";
-            break;
+    //       case "Late":
+    //         punchIn = "09:20 AM";
+    //         punchOut = "06:00 PM";
+    //         workingHours = "8 hrs 40 mins";
+    //         break;
 
-          case "Half Day":
-            punchIn = "09:00 AM";
-            punchOut = "03:30 PM";
-            workingHours = "6 hrs 30 mins";
-            break;
+    //       case "Half Day":
+    //         punchIn = "09:00 AM";
+    //         punchOut = "03:30 PM";
+    //         workingHours = "6 hrs 30 mins";
+    //         break;
 
-          case "Absent":
-            punchIn = "";
-            punchOut = "";
-            workingHours = "";
-            break;
+    //       case "Absent":
+    //         punchIn = "";
+    //         punchOut = "";
+    //         workingHours = "";
+    //         break;
 
-          default:
-            punchIn = "08:55 AM";
-            punchOut = "06:05 PM";
-            workingHours = "9 hrs 10 mins";
-        }
+    //       default:
+    //         punchIn = "08:55 AM";
+    //         punchOut = "06:05 PM";
+    //         workingHours = "9 hrs 10 mins";
+    //     }
 
-        await db.insert(
-          'attendance',
-          {
-            'email': widget.email,
-            'date': date,
-            'status': status,
-            'punchIn': punchIn,
-            'punchOut': punchOut,
-            'workingHours': workingHours,
-          },
-        );
-      }
+    //     await db.insert(
+    //       'attendance',
+    //       {
+    //         'email': widget.email,
+    //         'date': date,
+    //         'status': status,
+    //         'punchIn': punchIn,
+    //         'punchOut': punchOut,
+    //         'workingHours': workingHours,
+    //       },
+    //     );
+    //   }
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Mock Data Generated",
-          ),
-        ),
-      );
-    }
-
-    // Widget for Attendance Info
-    Widget buildStatusCard() {
-      return FutureBuilder(
-        future: getTodayAttendance(),
-        builder: (context, snapshot) {
-          String status = "Not Marked";
-          String punchIn = "--";
-          String punchOut = "--";
-          String workingHours = "--";
-          if(snapshot.hasData && snapshot.data != null){
-            var record = snapshot.data!;
-            status = record["status"];
-            punchIn = record["punchIn"].isEmpty ? "--" : record["punchIn"];
-            punchOut = record["punchOut"].isEmpty ? "--" : record["punchOut"];
-            workingHours = record["workingHours"].isEmpty ? "--" : record["workingHours"];
-          }
-          return SizedBox(
-            width: double.infinity,
-            child: Card(
-              elevation: 4,
-              shape:
-                RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              child: Padding(
-                padding: const EdgeInsets.all(16), 
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Today's Attendance",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight:
-                            FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text("Status : $status"),
-                    Text("Punch In : $punchIn"),
-                    Text("Punch Out : $punchOut"),
-                    Text("Working Hours : $workingHours"),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    }
+    //   ScaffoldMessenger.of(context)
+    //       .showSnackBar(
+    //     const SnackBar(
+    //       content: Text(
+    //         "Mock Data Generated",
+    //       ),
+    //     ),
+    //   );
+    // }
 
 
 
@@ -489,69 +486,36 @@ class _HomeScreenState extends State<HomeScreen>{
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Card(
-
                 elevation: 4,
-
-                shape:
-                    RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
 
                 child: Padding(
-
-                  padding:
-                      const EdgeInsets.all(16),
-
+                  padding: const EdgeInsets.all(16),
                   child: Row(
-
                     children: [
-
                       CircleAvatar(
-
                         radius: 35,
-
-                        backgroundImage:
-                            AssetImage(
-                          "assets/images/user.png",
-                        ),
+                        backgroundImage: AssetImage("assets/images/user.png"),
                       ),
 
                       SizedBox(width: 20),
 
                       Expanded(
-
                         child: Column(
-
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-
                             Text(
-
                               widget.name,
-
                               style: TextStyle(
                                 fontSize: 22,
-                                fontWeight:
-                                    FontWeight.bold,
+                                fontWeight:FontWeight.bold,
                               ),
                             ),
-
-                            Text(
-                              widget.designation,
-                            ),
-
-                            SizedBox(height: 5),
-
-                            Text(
-                              widget.email,
-                            ),
-
-                            Text(
-                              widget.phone,
-                            ),
+                            Text(widget.designation),
+                            Text(widget.email),
+                            Text(widget.phone),
                           ],
                         ),
                       ),
@@ -562,7 +526,7 @@ class _HomeScreenState extends State<HomeScreen>{
 
               SizedBox(height: 20),
 
-              buildStatusCard(),
+              buildStatusCard(), // attendance status card
 
               SizedBox(height: 20),
               Row(
@@ -571,21 +535,15 @@ class _HomeScreenState extends State<HomeScreen>{
                   Expanded(
                     child: SizedBox(
                       height: 60,
-
+                      //BUTTON TO HANDLE PUNCHIN
                       child: ElevatedButton(
                         onPressed: punchIn,
-
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
-
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-
                         child: Text(
                           "Punch In",
-
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white,
@@ -601,21 +559,17 @@ class _HomeScreenState extends State<HomeScreen>{
                   Expanded(
                     child: SizedBox(
                       height: 60,
-
+                      //BUTTON TO HANDLE PUNCHOUT
                       child: ElevatedButton(
                         onPressed: punchOut,
-
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
-
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-
                         child: Text(
                           "Punch Out",
-
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white,
@@ -624,21 +578,22 @@ class _HomeScreenState extends State<HomeScreen>{
                       ),
                     ),
                   ),
+
                 ],
               ),
+
               SizedBox(height: 30),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: logoutUser,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(12),
-                      ),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  // //BUTTON TO HANDLE LOGOUT
+                  onPressed: logoutUser,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(
                       "Logout",
@@ -650,20 +605,21 @@ class _HomeScreenState extends State<HomeScreen>{
                   ),
                 ),
 
-                SizedBox(height: 30),
-                ElevatedButton(
-                  onPressed: generateMockData,
-                  child: const Text(
-                    "Generate Mock Data",
-                  ),
-                )
+                // SizedBox(height: 30),
+                // ElevatedButton(
+                //   onPressed: generateMockData,
+                //   child: const Text(
+                //     "Generate Mock Data",
+                //   ),
+                // )
             ],
             
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
 
+
+      bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
         //bottom navigation_bar controls
         onTap: (index) {
@@ -673,14 +629,12 @@ class _HomeScreenState extends State<HomeScreen>{
               currentIndex = 0;
             });
           }
-
           // Attendance Tab
           else if(index == 1){
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) =>
-                  AttendanceScreen(email: widget.email,),
+                builder: (context) => AttendanceScreen(email: widget.email),
               ),
             );
           }
@@ -694,7 +648,6 @@ class _HomeScreenState extends State<HomeScreen>{
             );
           }
         },
-        
         items: const[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -710,6 +663,7 @@ class _HomeScreenState extends State<HomeScreen>{
           ),
         ],
       ),
+    
     );
   }
 }

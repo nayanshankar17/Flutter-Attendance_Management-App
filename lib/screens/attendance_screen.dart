@@ -6,19 +6,19 @@ import 'package:intl/intl.dart';
 
 class AttendanceScreen extends StatelessWidget {
   final String email;
-  const AttendanceScreen({super.key, required this.email,});
+  const AttendanceScreen({super.key, required this.email});
 
   @override
   Widget build(BuildContext context){
     return DefaultTabController(
-        length: 3,
+        length: 3, // Number of tabe = 3
         child: Scaffold(
           appBar: AppBar(
             centerTitle: true,
             title: Text("Attendance"),
             bottom: const TabBar(
               tabs: [
-                Tab(text: "Calender"),
+                Tab(text: "Calendar"),
                 Tab(text: "Summary",),
                 Tab(text: "Punches")
               ],
@@ -36,66 +36,53 @@ class AttendanceScreen extends StatelessWidget {
   }
 }
 
-//tab for calender
+
+// CALENDAR TAB
 class CalendarTab extends StatefulWidget {
-
   final String email;
-
-  const CalendarTab({
-    super.key,
-    required this.email,
-  });
-
+  const CalendarTab({super.key, required this.email});
   @override
   State<CalendarTab> createState() =>  _CalendarTabState();
 }
 
+
+// SUMMARY TAB
 class SummaryTab extends StatefulWidget {
-
   final String email;
-
-  const SummaryTab({
-    super.key,
-    required this.email,
-  });
-
+  const SummaryTab({super.key, required this.email});
   @override
-  State<SummaryTab> createState() =>
-      _SummaryTabState();
+  State<SummaryTab> createState() => _SummaryTabState();
 }
 
+
+// PUNCHES TAB
 class PunchesTab extends StatefulWidget {
   // store logged-in user email
   final String email;
   // constructor
-  const PunchesTab({
-    super.key,
-    required this.email,
-  });
+  const PunchesTab({super.key, required this.email});
   @override
   State<PunchesTab> createState() => _PunchesTabState();
 }
 
-//class for calandar tab
+
+// Class for calandar tab
 class _CalendarTabState extends State<CalendarTab>{
-  
   final DatabaseHelper dbHelper = DatabaseHelper();
 
   List<Map<String,dynamic>>
   attendanceRecords = [];
-
   Map<String, dynamic>? selectedRecord;
   bool isLoading = false;
-  Future<void> loadAttendance(DateTime selectedDay) async {
+  
 
+  // FUNC TO LOAD THE ATTENDANCE IN THE CALANDER
+  Future<void> loadAttendance(DateTime selectedDay) async {
     setState(() {
       isLoading = true;
     });
-
-    String date = DateFormat('dd-MM-yyyy')  .format(selectedDay);
-
-    final record = await dbHelper.getAttendanceByDate(widget.email,date);
-
+    String date = DateFormat('dd-MM-yyyy').format(selectedDay);
+    final record = await dbHelper.getAttendanceByDate(widget.email, date); // FUNC CALL FROM DB_HELPER
     setState(() {
       selectedRecord = record;
       isLoading = false;
@@ -106,6 +93,7 @@ class _CalendarTabState extends State<CalendarTab>{
   DateTime? _selectedDay;
 
 
+  // FUNC TO LOAD STATUS 
   Future<void>loadAttendanceStatuses() async {
     attendanceRecords = await dbHelper.getAttendanceStatuses(widget.email);
     setState(() {});
@@ -116,12 +104,11 @@ class _CalendarTabState extends State<CalendarTab>{
     loadAttendanceStatuses();
   }
 
-
+  // CALENDAR WIDGET
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-
         TableCalendar(
           firstDay: DateTime.utc(2020, 1, 1),
           lastDay: DateTime.utc(2035, 12, 31),
@@ -130,18 +117,13 @@ class _CalendarTabState extends State<CalendarTab>{
           selectedDayPredicate: (day) {
             return isSameDay(_selectedDay, day);
           },
-
-          onDaySelected: (
-            selectedDay,
-            focusedDay,
-          ) {
+          onDaySelected: (selectedDay, focusedDay) {
             setState(() {
               _selectedDay = selectedDay;
               _focusedDay = focusedDay;
             });
             loadAttendance(selectedDay);
           },
-
 
           calendarBuilders: CalendarBuilders(
             
@@ -172,36 +154,26 @@ class _CalendarTabState extends State<CalendarTab>{
               Map<String,dynamic>? record;
 
               try {
-
-                record =
-                    attendanceRecords.firstWhere(
+                record = attendanceRecords.firstWhere(
                   (r) => r['date'] == date,
                 );
-
-              } catch (e) {
+              } 
+              catch (e) {
                 record = null;
               }
 
               Color? color;
-
               if (record != null) {
-
-                switch (
-                  record['status']
-                ) {
-
+                switch ( record['status'] ) {
                   case 'Present':
                     color = Colors.green;
                     break;
-
                   case 'Late':
                     color = Colors.blue;
                     break;
-
                   case 'Half Day':
                     color = Colors.amber;
                     break;
-
                   case 'Absent':
                     color = Colors.red;
                     break;
@@ -233,18 +205,15 @@ class _CalendarTabState extends State<CalendarTab>{
 
         const SizedBox(height: 20),
 
+        // SMALL CARD TO DISPLAY DETAILS OF SELECTED DATE
         Card(
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
                 Text(
-                  _selectedDay == null
-                      ? "No date selected"
-                      : "Date: ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}",
+                  _selectedDay == null ? "No date selected" : "Date: ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}",
                 ),
 
                 const SizedBox(height: 10),
@@ -252,204 +221,80 @@ class _CalendarTabState extends State<CalendarTab>{
                 if (isLoading)
                   const CircularProgressIndicator(),
 
-                if (!isLoading &&
-                    selectedRecord == null)
+                if (!isLoading && selectedRecord == null)
                   const Text(
                     "No attendance record",
                   ),
                 
                 if (!isLoading && selectedRecord != null)
-
                   Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
-                      Text(
-                        "Punch In: ${selectedRecord!["punchIn"]}",
-                      ),
-
-                      Text(
-                        "Punch Out: ${selectedRecord!["punchOut"]}",
-                      ),
-
-                      Text(
-                        "Hours: ${selectedRecord!["workingHours"]}",
-                      ),
-                      Text(
-                        "Status: ${selectedRecord!["status"]}",
-                      ),
+                      Text("Punch In: ${selectedRecord!["punchIn"]}"),
+                      Text("Punch Out: ${selectedRecord!["punchOut"]}"),
+                      Text("Hours: ${selectedRecord!["workingHours"]}"),
+                      Text("Status: ${selectedRecord!["status"]}"),
                     ],
                   ),
+
               ],
             ),
           ),
         ),
       ],
     );
-}
-}
-
-class _PunchesTabState extends State<PunchesTab>{
-  final DatabaseHelper dbHelper = DatabaseHelper();
-
-  // function to format time properly
-  String formatTime(String time){
-
-    // if empty return --
-    if(time.isEmpty){
-      return "--";
-    }
-
-    // split hour and minute
-    List<String> parts =
-        time.split(":");
-        
-
-    // format hour
-    String hour =
-        parts[0].padLeft(2, '0');
-
-    // format minute
-    String minute =
-        parts[1].padLeft(2, '0');
-
-    // final formatted time
-    return "$hour:$minute";
   }
+}
+
+
+// CLASS FOR SUMMARY TAB
+class _SummaryTabState extends State<SummaryTab> {
+  final DatabaseHelper dbHelper = DatabaseHelper();
 
   @override
   Widget build(BuildContext context) {
-
     return FutureBuilder(
-      future: dbHelper.getAttendance(
-        widget.email,
-      ),
 
+      future: dbHelper.getAttendance(widget.email),
       builder: (context, snapshot) {
-
         if (!snapshot.hasData) {
-          return Center(
+          return const Center(
             child: CircularProgressIndicator(),
           );
         }
 
-        List<Map<String, dynamic>>
-            records = snapshot.data!;
-
-        if (records.isEmpty) {
-          return Center(
-            child: Text(
-              "No attendance found",
-            ),
-          );
-        }
-
-        return ListView.builder(
-
-          itemCount: records.length,
-
-          itemBuilder: (context, index) {
-
-            var record = records[index];
-
-            return Card(
-
-              margin: EdgeInsets.all(10),
-
-              child: ListTile(
-
-                title: Text(
-                  "Date: ${record["date"]}",
-                ),
-
-                onTap: () {
-                  print(record);
-                },
-
-                subtitle: Column(
-
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-
-                  children: [
-
-                    Text(
-                      "Punch In: ${formatTime(record["punchIn"])}",
-                    ),
-
-                    Text(
-                      "Punch Out: ${formatTime(record["punchOut"])}",
-                    ),
-
-                    Text(
-                      "Hours: ${record["workingHours"]}",
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _SummaryTabState
-    extends State<SummaryTab> {
-
-  final DatabaseHelper dbHelper =
-      DatabaseHelper();
-
-  @override
-  Widget build(BuildContext context) {
-
-    return FutureBuilder(
-
-      future: dbHelper.getAttendance(
-        widget.email,
-      ),
-
-      builder: (context, snapshot) {
-
-        if (!snapshot.hasData) {
-
-          return const Center(
-            child:
-                CircularProgressIndicator(),
-          );
-        }
-
-        List<Map<String, dynamic>>
-            records = snapshot.data!;
+        List<Map<String, dynamic>> records = snapshot.data!;
 
         int presentCount = 0;
+        int lateCount = 0;
+        int halfDayCount = 0;
         int absentCount = 0;
-        int leaveCount = 0;
+        int incompleteCount = 0;
 
         for (var record in records) {
 
-          String status =
-              record['status'];
-
-          if (status == "Present") {
-            presentCount++;
-          }
-
-          else if (status == "Absent") {
-            absentCount++;
-          }
-
-          else if (status == "Leave") {
-            leaveCount++;
+          String status = record['status'];
+          switch(status){
+            case "Present":
+              presentCount++;
+              break;
+            case "Absent":
+              absentCount++;
+              break;
+            case "Late":
+              lateCount++;
+              break;
+            case "Half Day":
+              halfDayCount++;
+              break;
+            case "Incomplete":
+              incompleteCount++;
+              break;
           }
         }
 
         return Padding(
-
-          padding:
-              const EdgeInsets.all(16),
+          padding:const EdgeInsets.all(16),
 
           child: Column(
 
@@ -472,47 +317,128 @@ class _SummaryTabState
               const SizedBox(height: 15),
 
               buildSummaryCard(
-                "Leave",
-                leaveCount,
-                Colors.orange,
+                "Late",
+                lateCount,
+                Colors.blue,
               ),
+
+              const SizedBox(height: 15),
+
+              buildSummaryCard(
+                "Half Day",
+                halfDayCount,
+                Colors.amber,
+              ),
+
+              const SizedBox(height: 15),
+
+              buildSummaryCard(
+                "Incomplete",
+                incompleteCount,
+                Colors.purple,
+              ),
+
             ],
+
           ),
         );
+
       },
     );
   }
 
 
-  Widget buildSummaryCard(
-    String title,
-    int count,
-    Color color,
-  ) {
-
+  Widget buildSummaryCard(String title, int count, Color color) {
     return Card(
-
       elevation: 3,
-
       child: ListTile(
-
-        leading: CircleAvatar(
-          backgroundColor: color,
-        ),
-
+        leading: CircleAvatar(backgroundColor: color),
         title: Text(title),
-
         trailing: Text(
-
           count.toString(),
-
           style: const TextStyle(
             fontSize: 22,
-            fontWeight:
-                FontWeight.bold,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
     );
   }
+}
+
+
+// CLASS FOR PUNCHES TAB
+class _PunchesTabState extends State<PunchesTab>{
+  final DatabaseHelper dbHelper = DatabaseHelper();
+
+  // Function to format time properly
+  String formatTime(String time){
+    if(time.isEmpty){
+      return "--";
+    }
+
+    // split hour and minute
+    List<String> parts = time.split(":");
+        
+    // format hour
+    String hour = parts[0].padLeft(2, '0');
+
+    // format minute
+    String minute = parts[1].padLeft(2, '0');
+
+    // final formatted time
+    return "$hour:$minute";
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: dbHelper.getAttendance(widget.email),
+
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        List<Map<String, dynamic>> records = snapshot.data!;
+
+        if (records.isEmpty) {
+          return Center(
+            child: Text(
+              "No attendance found",
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: records.length,
+          itemBuilder: (context, index) {
+            var record = records[index];
+            return Card(
+              margin: EdgeInsets.all(10),
+              child: ListTile(
+                title: Text(
+                  "Date: ${record["date"]}",
+                ),
+                onTap: () {},
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Punch In: ${formatTime(record["punchIn"])}"),
+                    Text("Punch Out: ${formatTime(record["punchOut"])}"),
+                    Text("Hours: ${record["workingHours"]}"),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      
+      },
+    );
+  }
+  
 }

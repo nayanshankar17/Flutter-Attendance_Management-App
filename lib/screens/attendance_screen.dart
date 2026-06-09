@@ -205,6 +205,9 @@ class _CalendarTabState extends State<CalendarTab>{
                   case 'Absent':
                     color = Colors.red;
                     break;
+                  case 'Incomplete':
+                    color = Colors.purple;
+                    break;
                 }
               }
 

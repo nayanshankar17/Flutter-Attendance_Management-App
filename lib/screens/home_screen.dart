@@ -53,6 +53,13 @@ class _HomeScreenState extends State<HomeScreen>{
   // stores the idx of tabs from bottom navihation bar
   int currentIndex = 0;
 
+  // func to check if yesterdays status
+  @override
+  void initState() {
+    super.initState();
+
+    updateIncompleteAttendance();
+  }
 
   //func to handle punchIn
   Future<void> punchIn() async{
@@ -107,6 +114,7 @@ class _HomeScreenState extends State<HomeScreen>{
         content: Text("Punch In recorded."),
       ),
     );
+    setState(() {});
   }
   
   //func to punchOut
@@ -192,6 +200,7 @@ class _HomeScreenState extends State<HomeScreen>{
         content: Text("Punch Out recorded."),
       ),
     );
+    setState(() {});
   }
 
   String calculateHours(
@@ -225,10 +234,6 @@ class _HomeScreenState extends State<HomeScreen>{
 
     if(punchIn.isEmpty){
       return "Absent";
-    }
-
-    if(punchOut.isEmpty){
-      return "Incomplete";
     }
     DateFormat format =
         DateFormat('hh:mm a');
@@ -271,8 +276,7 @@ class _HomeScreenState extends State<HomeScreen>{
   }
 
   // Function to check if today's attendance already exists
-  Future<Map<String, dynamic>?>
-    getTodayAttendance() async {
+  Future<Map<String, dynamic>?> getTodayAttendance() async {
       final db = await dbHelper.database;
       DateTime now = DateTime.now();
       String currentDate = DateFormat('dd-MM-yyyy',).format(now);
@@ -295,6 +299,32 @@ class _HomeScreenState extends State<HomeScreen>{
       return null;
     }
 
+
+  // func to check is the user missed yesterday's attandance
+  Future<void> updateIncompleteAttendance() async {
+    final db = await dbHelper.database;
+
+    DateTime yesterday = DateTime.now().subtract( const Duration(days: 1));
+
+    while (yesterday.weekday == DateTime.saturday || yesterday.weekday == DateTime.sunday) {
+      yesterday = yesterday.subtract(const Duration(days: 1));
+    }
+    String yesterdayDate = DateFormat('dd-MM-yyyy').format(yesterday);
+
+    await db.update(
+      'attendance',
+      {
+        'status': 'Incomplete',
+      },
+      where:
+          'date = ? AND email = ? AND status = ?',
+      whereArgs: [
+        yesterdayDate,
+        widget.email,
+        'Pending',
+      ],
+    );
+  }
 
     //============================================================
     //                      MOCK DATA
@@ -388,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen>{
       );
     }
 
-    
+    // Widget for Attendance Info
     Widget buildStatusCard() {
       return FutureBuilder(
         future: getTodayAttendance(),
@@ -396,11 +426,13 @@ class _HomeScreenState extends State<HomeScreen>{
           String status = "Not Marked";
           String punchIn = "--";
           String punchOut = "--";
+          String workingHours = "--";
           if(snapshot.hasData && snapshot.data != null){
             var record = snapshot.data!;
             status = record["status"];
             punchIn = record["punchIn"].isEmpty ? "--" : record["punchIn"];
             punchOut = record["punchOut"].isEmpty ? "--" : record["punchOut"];
+            workingHours = record["workingHours"].isEmpty ? "--" : record["workingHours"];
           }
           return SizedBox(
             width: double.infinity,
@@ -427,6 +459,7 @@ class _HomeScreenState extends State<HomeScreen>{
                     Text("Status : $status"),
                     Text("Punch In : $punchIn"),
                     Text("Punch Out : $punchOut"),
+                    Text("Working Hours : $workingHours"),
                   ],
                 ),
               ),
@@ -455,7 +488,6 @@ class _HomeScreenState extends State<HomeScreen>{
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 30),
               Card(
 
                 elevation: 4,
@@ -481,7 +513,7 @@ class _HomeScreenState extends State<HomeScreen>{
 
                         backgroundImage:
                             AssetImage(
-                          "assets/images/logo.jpg",
+                          "assets/images/user.png",
                         ),
                       ),
 
